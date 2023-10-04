@@ -1,3 +1,4 @@
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:shalat_app/constant.dart';
 import 'package:shalat_app/fetch.dart';
@@ -12,7 +13,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   List<bool> muteStatus = [];
-  String selectedValue = "";
+  String selectedCity = "";
   String displayCity = "";
   List<Map<String, String>> cityOptions = [];
 
@@ -47,106 +48,116 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             children: [
               Container(
-                padding: EdgeInsets.all(10),
-                width: constantWidth,
-                height: constantHeight * 0.15,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(25), bottomRight: Radius.circular(25)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2), // Shadow color
-                      spreadRadius: 2, // Spread radius of the shadow
-                      blurRadius: 4,   // Blur radius of the shadow
-                      offset: Offset(0, 2), // Offset of the shadow
-                    ),
-                  ],
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: ButtonTheme(
-                    alignedDropdown: false,
-                    child: DropdownButton<String>(
-                      iconSize: 30,
-                      icon: (null),
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontSize: 16,
+                padding: EdgeInsets.all(20),
+                child: DropdownSearch<String>(
+                  popupProps: PopupProps.menu(
+                    searchFieldProps: TextFieldProps(
+                      decoration: InputDecoration(
+                        suffixIcon: Icon(Icons.search),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(10.0),
+                          ),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(10.0),
+                          ),
+                        ),
                       ),
-                      hint: displayCity == '' ? Text('select') : Text(displayCity),
-                      onChanged: (newValue) {
-                        final selectedOption =  cityOptions.firstWhere((option) => option['id'] == newValue);
-                        setState(() {
-                          selectedValue = newValue!;
-                          displayCity = selectedOption['lokasi']!;
-                        });
-                      },
-                      items: cityOptions.map<DropdownMenuItem<String>>((Map<String, String> option) {
-                        return DropdownMenuItem<String>(
-                          value: option['id']!,
-                          child: Text(option['lokasi']!),
-                        );
-                      }).toList(),
+                      style: TextStyle(fontSize: 15),
+                      padding: EdgeInsets.all(10)
+                    ),
+                    itemBuilder: (context, selectedCity, bool isSelected){
+                      return Container(
+                        margin: EdgeInsets.only(left: 10),
+                        padding: EdgeInsets.all(5),
+                          child: Text(selectedCity, style: TextStyle(fontSize: 15),));
+                  },
+                    showSearchBox: true,
+                    showSelectedItems: true,
+                    menuProps: MenuProps(
+                      borderRadius: BorderRadius.circular(10),
+                      elevation: 0,
+                      backgroundColor: Colors.white,
+                    )
+                  ),
+                  items: cityOptions.map<String>((Map<String, String> option) {
+                    return option['lokasi']!;
+                  }).toList(),
+                  dropdownDecoratorProps: DropDownDecoratorProps(
+                    baseStyle: TextStyle(fontSize: 15),
+                    textAlignVertical: TextAlignVertical.center,
+                    dropdownSearchDecoration: InputDecoration(
+                      fillColor: Colors.white,
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10.0),
+                        ),
+                      ),
                     ),
                   ),
+                  onChanged: (selectedValue) {
+                    final selectedOption = cityOptions.firstWhere(
+                          (option) => option['lokasi'] == selectedValue,
+                      orElse: () => Map<String, String>(),
+                    );
+                    setState(() {
+                      selectedCity = selectedOption['id']!;
+                    });
+                  },
+                  selectedItem: cityOptions.isNotEmpty ? 'lokasi' : null,
                 ),
               ),
               Container(
                 padding: EdgeInsets.all(10),
                   width: constantWidth,
                   height: constantHeight * 0.75,
-                  child: selectedValue != '' ? FutureBuilder(
-                      future: Future.wait([getShalatData(selectedValue)]),
+                  child: selectedCity != '' ? FutureBuilder(
+                      future: Future.wait([getShalatData(selectedCity)]),
                     builder: (context, snapshot) {
                         if(snapshot.hasData){
                           ShalatModel data = snapshot.data![0];
                           List <String> shalat = [
-                            'tanggal',
-                            'imsak',
-                            'subuh',
-                            'terbit',
-                            'dhuha',
-                            'dzuhur',
-                            'ashar',
-                            'maghrib',
-                            'isya',
-                            'date',
+                            'Imsak',
+                            'Fajar',
+                            'Sunrise',
+                            'Dhuha',
+                            'Dhuhr',
+                            'Asar',
+                            'Maghrib',
+                            'Isha',
                           ];
                           return ListView.builder(
                               itemCount: shalat.length,
                               itemBuilder: (BuildContext context, int index){
                                 final fieldName = shalat[index];
                                 String fieldValue = '';
-
                                 switch (fieldName) {
-                                  case 'tanggal':
-                                    fieldValue = data.jadwal.tanggal;
-                                    break;
-                                  case 'imsak':
+                                  case 'Imsak':
                                     fieldValue = data.jadwal.imsak;
                                     break;
-                                  case 'subuh':
+                                  case 'Fajar':
                                     fieldValue = data.jadwal.subuh;
                                     break;
-                                  case 'terbit':
+                                  case 'Sunrise':
                                     fieldValue = data.jadwal.terbit;
                                     break;
-                                  case 'dhuha':
+                                  case 'Dhuha':
                                     fieldValue = data.jadwal.dhuha;
                                     break;
-                                  case 'dzuhur':
+                                  case 'Dhuhr':
                                     fieldValue = data.jadwal.dzuhur;
                                     break;
-                                  case 'ashar':
+                                  case 'Asar':
                                     fieldValue = data.jadwal.ashar;
                                     break;
-                                  case 'maghrib':
+                                  case 'Maghrib':
                                     fieldValue = data.jadwal.maghrib;
                                     break;
-                                  case 'isya':
+                                  case 'Isha':
                                     fieldValue = data.jadwal.isya;
-                                    break;
-                                  case 'date':
-                                    fieldValue = data.jadwal.date;
                                     break;
                                   default:
                                     fieldValue = 'Unknown';
@@ -157,7 +168,7 @@ class _HomePageState extends State<HomePage> {
                                   muteStatus = List.generate(shalat.length, (index) => false);
                                 }
                             return Card(
-                              color: Colors.green,
+                              color: Colors.amberAccent,
                               shadowColor: Colors.black,
                               elevation: 5,
                               child: Padding(
@@ -176,7 +187,7 @@ class _HomePageState extends State<HomePage> {
                                     IconButton(
                                         onPressed: (){
                                           setState(() {
-                                            muteStatus[index] = true;
+                                            muteStatus[index] = !muteStatus[index];
                                           });
                                         },
                                         icon: Icon(
