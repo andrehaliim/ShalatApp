@@ -23,6 +23,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     fetchApiData();
     loadSelectedCity();
+    loadMuteStatus();
   }
 
   Future<void> loadSelectedCity() async {
@@ -39,6 +40,20 @@ class _HomePageState extends State<HomePage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('saveCityId', cityId);
     await prefs.setString('saveCityName', cityName);
+  }
+
+  Future<void> loadMuteStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedMuteStatus = prefs.getStringList('muteStatus') ?? [];
+    setState(() {
+      muteStatus = savedMuteStatus.map((value) => value == 'true' ? true : false).toList();
+    });
+  }
+
+  Future<void> saveMuteStatus(List<bool>muteList) async {
+    final prefs = await SharedPreferences.getInstance();
+    final muteStatusIntList = muteList.map((value) => value ? 'true' : 'false').toList();
+    await prefs.setStringList('muteStatus', muteStatusIntList);
   }
 
   Future<void> fetchApiData() async {
@@ -65,7 +80,7 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             children: [
               Container(
-                padding: EdgeInsets.all(20),
+                padding: EdgeInsets.all(10),
                 child: DropdownSearch<String>(
                   popupProps: PopupProps.menu(
                     searchFieldProps: TextFieldProps(
@@ -208,6 +223,7 @@ class _HomePageState extends State<HomePage> {
                                           setState(() {
                                             muteStatus[index] = !muteStatus[index];
                                           });
+                                          saveMuteStatus(muteStatus);
                                         },
                                         icon: Icon(
                                           muteStatus[index] == true ? Icons.volume_off : Icons.volume_up,
