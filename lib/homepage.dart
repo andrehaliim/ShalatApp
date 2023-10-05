@@ -1,9 +1,13 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shalat_app/constant.dart';
 import 'package:shalat_app/fetch.dart';
 import 'package:shalat_app/model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,7 +20,9 @@ class _HomePageState extends State<HomePage> {
   List<bool> muteStatus = [];
   String selectedCityId = "";
   String selectedCityName = "";
-  List<Map<String, String>> cityOptions = [];
+  List<Map<String, String>> cityDropdownItem = [];
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
@@ -24,50 +30,23 @@ class _HomePageState extends State<HomePage> {
     fetchApiData();
     loadSelectedCity();
     loadMuteStatus();
-  }
-
-  Future<void> loadSelectedCity() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedCityId = prefs.getString('saveCityId') ?? '';
-    final savedCityName = prefs.getString('saveCityName') ?? '';
-    setState(() {
-      selectedCityId = savedCityId;
-      selectedCityName = savedCityName;
-    });
-  }
-
-  Future<void> saveSelectedCity(String cityId, String cityName) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('saveCityId', cityId);
-    await prefs.setString('saveCityName', cityName);
-  }
-
-  Future<void> loadMuteStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedMuteStatus = prefs.getStringList('muteStatus') ?? [];
-    setState(() {
-      muteStatus = savedMuteStatus.map((value) => value == 'true' ? true : false).toList();
-    });
-  }
-
-  Future<void> saveMuteStatus(List<bool>muteList) async {
-    final prefs = await SharedPreferences.getInstance();
-    final muteStatusIntList = muteList.map((value) => value ? 'true' : 'false').toList();
-    await prefs.setStringList('muteStatus', muteStatusIntList);
-  }
-
-  Future<void> fetchApiData() async {
-    final fetchedOptions = await getCityList();
-
-    setState(() {
-      cityOptions = fetchedOptions;
-    });
+    _configureLocalTimeZone();
+    final InitializationSettings initializationSettings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    );
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   @override
   Widget build(BuildContext context) {
     setConstantSize(context);
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _showNotification(); // Show the notification when the button is pressed
+        },
+        child: Icon(Icons.notifications),
+      ),
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: Text(
@@ -114,7 +93,7 @@ class _HomePageState extends State<HomePage> {
                       backgroundColor: Colors.white,
                     )
                   ),
-                  items: cityOptions.map<String>((Map<String, String> option) {
+                  items: cityDropdownItem.map<String>((Map<String, String> option) {
                     return option['lokasi']!;
                   }).toList(),
                   dropdownDecoratorProps: DropDownDecoratorProps(
@@ -131,7 +110,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   onChanged: (selectedValue) {
-                    final selectedOption = cityOptions.firstWhere(
+                    final selectedOption = cityDropdownItem.firstWhere(
                           (option) => option['lokasi'] == selectedValue,
                       orElse: () => Map<String, String>(),
                     );
@@ -250,5 +229,64 @@ class _HomePageState extends State<HomePage> {
           )),
       backgroundColor: Colors.grey[300],
     );
+  }
+
+  Future<void> _showNotification() async {
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+        0,
+        'scheduled title',
+        'scheduled body',
+        tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5)),
+        const NotificationDetails(
+            android: AndroidNotificationDetails(
+                'your channel id', 'your channel name',
+                channelDescription: 'your channel description')),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+        UILocalNotificationDateInterpretation.absoluteTime);
+  }
+
+  Future<void> _configureLocalTimeZone() async {
+    tz.initializeTimeZones();
+    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(currentTimeZone));
+  }
+
+  Future<void> loadSelectedCity() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedCityId = prefs.getString('saveCityId') ?? '';
+    final savedCityName = prefs.getString('saveCityName') ?? '';
+    setState(() {
+      selectedCityId = savedCityId;
+      selectedCityName = savedCityName;
+    });
+  }
+
+  Future<void> saveSelectedCity(String cityId, String cityName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saveCityId', cityId);
+    await prefs.setString('saveCityName', cityName);
+  }
+
+  Future<void> loadMuteStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedMuteStatus = prefs.getStringList('muteStatus') ?? [];
+    setState(() {
+      muteStatus = savedMuteStatus.map((value) => value == 'true' ? true : false).toList();
+    });
+  }
+
+  Future<void> saveMuteStatus(List<bool>muteList) async {
+    final prefs = await SharedPreferences.getInstance();
+    final muteStatusIntList = muteList.map((value) => value ? 'true' : 'false').toList();
+    await prefs.setStringList('muteStatus', muteStatusIntList);
+  }
+
+  Future<void> fetchApiData() async {
+    final fetchedOptions = await getCityList();
+
+    setState(() {
+      cityDropdownItem = fetchedOptions;
+    });
   }
 }
