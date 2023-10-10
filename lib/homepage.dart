@@ -21,8 +21,8 @@ class _HomePageState extends State<HomePage> {
   String selectedCityId = "";
   String selectedCityName = "";
   List<Map<String, String>> cityDropdownItem = [];
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  String currentTimeZone = 'Unknown';
 
   @override
   void initState() {
@@ -248,7 +248,12 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _configureLocalTimeZone() async {
     tz.initializeTimeZones();
-    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    try {
+      currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    } catch (e) {
+      throw Exception('Failed to get local timezone)');
+    }
+    print(currentTimeZone);
     tz.setLocalLocation(tz.getLocation(currentTimeZone));
   }
 
